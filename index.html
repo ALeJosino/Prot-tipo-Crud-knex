@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lista de Registros</title>
+  <!-- Link para o Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+</head>
+
+<body>
+  <div class="container mt-5">
+    <h1 class="mb-4">Lista de Registros</h1>
+
+    <form id="form-adicionar" class="mb-4">
+      <input type="hidden" id="id_usuario" placeholder="ID" />
+      <div class="form-row">
+        <div class="col">
+          <input type="text" id="nome" class="form-control" placeholder="Nome" required />
+        </div>
+        <div class="col">
+          <input type="email" id="email" class="form-control" placeholder="Email" required />
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </div>
+    </form>
+
+    <table class="table table-bordered">
+      <thead class="thead-light">
+        <tr>
+          <th>ID</th>
+          <th>Nome</th>
+          <th>Email</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tabela-alunos">
+        <!-- Os registros serão inseridos aqui -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const BASE_URL = "http://localhost:3000"; // Defina o caminho base do seu servidor
+
+    async function listarRegistros() {
+      try {
+        const response = await fetch(`${BASE_URL}/registros`);
+        const registros = await response.json();
+        const tabelaAlunos = document.getElementById("tabela-alunos");
+        tabelaAlunos.innerHTML = ""; // Limpa a tabela antes de adicionar novos registros
+
+        registros.forEach((aluno) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+                        <td>${aluno.id_usuario}</td>
+                        <td>${aluno.nome}</td>
+                        <td>${aluno.email}</td>
+                        <td>
+                          <div class="d-flex justify-content-between">
+                            <button class="btn btn-warning btn-sm flex-fill mr-1" onclick="prepararEdicao('${aluno.id_usuario}', '${aluno.nome}', '${aluno.email}')">Editar</button>
+                            <div class="d-flex justify-content-between">
+                            <button class="btn btn-success btn-sm flex-fill mr-1" onclick="prepararEdicao('${aluno.id_usuario}', '${aluno.nome}', '${aluno.email}')">Chamados</button>
+                            <button class="btn btn-danger btn-sm flex-fill ml-1" onclick="deletarRegistro('${aluno.id_usuario}')">Deletar</button>
+                          </div>
+                        </td>
+                    `;
+          tabelaAlunos.appendChild(tr);
+        });
+      } catch (error) {
+        console.error("Erro ao listar registros:", error);
+      }
+    }
+
+    async function adicionarRegistro(event) {
+      event.preventDefault(); // Impede o envio padrão do formulário
+
+      const id_usuario = document.getElementById("id_usuario").value;
+      const nome = document.getElementById("nome").value;
+      const email = document.getElementById("email").value;
+
+      if (id_usuario) {
+        await editarRegistro(id_usuario, nome, email);
+      } else {
+        await criarRegistro(nome, email);
+      }
+
+      listarRegistros(); // Atualiza a lista após adicionar ou editar
+      resetarFormulario(); // Limpa o formulário após a operação
+    }
+
+    async function criarRegistro(nome, email) {
+      try {
+        const response = await fetch(`${BASE_URL}/registros`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ nome, email }),
+        });
+
+        if (response.ok) {
+          alert("Registro adicionado com sucesso!");
+        } else {
+          alert("Erro ao adicionar registro.");
+        }
+      } catch (error) {
+        console.error("Erro ao adicionar registro:", error);
+      }
+    }
+
+    async function editarRegistro(id_usuario, nome, email) {
+      const url = `${BASE_URL}/registros/${id_usuario}`; // Incluindo o ID na URL
+      console.log(`Atualizando registro em: ${url}`);
+
+      try {
+        const response = await fetch(url, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ nome, email }),
+        });
+
+        if (response.ok) {
+          alert("Registro atualizado com sucesso!");
+        } else {
+          const errorData = await response.json();
+          alert(`Erro ao atualizar registro: ${errorData.error}`);
+        }
+      } catch (error) {
+        console.error("Erro ao atualizar registro:", error);
+      }
+    }
+
+    function prepararEdicao(id_usuario, nome, email) {
+      document.getElementById("id_usuario").value = id_usuario;
+      document.getElementById("nome").value = nome;
+      document.getElementById("email").value = email;
+    }
+
+    function resetarFormulario() {
+      document.getElementById("id_usuario").value = "";
+      document.getElementById("nome").value = "";
+      document.getElementById("email").value = "";
+    }
+
+    async function deletarRegistro(id_usuario) {
+      const url = `${BASE_URL}/registros/${id_usuario}`;
+      try {
+        const response = await fetch(url, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.ok) {
+          alert("Registro deletado com sucesso!");
+          listarRegistros(); // Atualiza a lista após a deleção
+        } else {
+          const errorData = await response.json();
+          alert(`Erro ao deletar registro: ${errorData.error}`);
+        }
+      } catch (error) {
+        console.error("Erro ao deletar registro:", error);
+      }
+    }
+
+    document
+      .getElementById("form-adicionar")
+      .addEventListener("submit", adicionarRegistro);
+
+    // Chama a função ao carregar a página
+    window.onload = listarRegistros;
+  </script>
+
+  <!-- Link para o Bootstrap JS (opcional, para funcionalidades adicionais) -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+</html>
